@@ -17,30 +17,61 @@ import shutil
 
 class vtkConan(ConanFile):
     name = "vtk"
-    version = "9.0.0"
+    version = "9.0"
+    source_version = "9.0.1"
+    short_version = "9.0"
     homepage = "https://www.vtk.org/"
+    git_hash = "d6710ec6fd105ee0662c80b08a6fc0cd335e11f8"
     license = "BSD license"
-    url = "https://github.com/darcamo/conan-vtk"
-    author = "Darlan Cavalcante Moreira (darcamo@gmail.com)"
+    url = "https://github.com/bilke/conan-vtk"
     description = "The Visualization Toolkit (VTK) is an open-source, \
         freely available software system for 3D computer graphics, \
         image processing, and visualization."
     settings = "os", "compiler", "build_type", "arch"
-    # options = {"shared": [True, False]}
-    # default_options = "shared=True"
+    options = {"shared": [True, False], "qt": [True, False], "mpi": [True, False],
+               "fPIC": [True, False], "minimal": [True, False], "ioxml": [True, False],
+               "mpi_minimal": [True, False]}
+    default_options = ("shared=False", "qt=False", "mpi=False", "fPIC=False",
+                       "minimal=True", "ioxml=False", "mpi_minimal=False")
     generators = "cmake"
+    no_copy_source = True
+    source_folder = "vtk_source"
+    required_modules = ["vtkCommonColor"
+                        "vtkCommonComputationalGeometry",
+                        "vtkCommonCore",
+                        "vtkCommonDataModel",
+                        "vtkCommonExecutionModel",
+                        "vtkCommonMath",
+                        "vtkCommonMisc",
+                        "vtkCommonSystem",
+                        "vtkCommonTransforms",
+                        "vtkFiltersCore",
+                        "vtkFiltersExtraction",
+                        "vtkFiltersGeneral",
+                        "vtkFiltersGeometry",
+                        "vtkFiltersImaging",
+                        "vtkFiltersPoints",
+                        "vtkFiltersReebGraph",
+                        "vtkFiltersTopology",
+                        "vtkInfovisCore",
+                        "vtkInfovisBoost",
+                        "vtkInfovisBoostGraphAlgorithms",
+                        "vtkInfovisLayout",
+                        "vtkIOCore",
+                        "vtkIOInfovis",
+                        "vtkIOMovie",
+                        "vtkIOLegacy",
+                        "vtkIOGeometry",
+                        "vtkIOLegacy",
+                        "vtkRenderingCore"
+                        "vtkViewsCore",
+                        "vtkViewsGeovis",
+                        "vtkViewsInfovis"]
 
     def source(self):
-        tools.get("https://www.vtk.org/files/release/{}/VTK-{}.tar.gz".format(
-            ".".join(self.version.split(".")[:-1]), # Get only X.Y version, instead of X.Y.Z
-            self.version))
-        os.rename("VTK-{}".format(self.version), "sources")
-        tools.replace_in_file("sources/CMakeLists.txt",
-                              "project(VTK)",
-                              """project(VTK)
-include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
-conan_basic_setup()
-SET(CMAKE_INSTALL_RPATH "$ORIGIN")""")
+        if not os.path.isfile(self.source_folder):
+            self.run("git clone https://gitlab.kitware.com/vtk/vtk.git " + self.source_folder)
+        self.run("cd " + self.source_folder + " && git checkout " + self.git_hash)
 
     def imports(self):
         self.copy("*.dll", dst="bin", src="bin")
@@ -59,14 +90,6 @@ SET(CMAKE_INSTALL_RPATH "$ORIGIN")""")
             for name in package_names:
                 installer.install(name)
 
-    def build(self):
-        os.mkdir("build")
-        shutil.move("conanbuildinfo.cmake", "build/")
-        cmake = CMake(self)
-        cmake.configure(source_folder="sources", build_folder="build")
-        cmake.build()
-        cmake.install()
-
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
         self.cpp_info.includedirs = ["include/vtk-{}".format(self.version[:-2])]
@@ -77,3 +100,40 @@ SET(CMAKE_INSTALL_RPATH "$ORIGIN")""")
          "vtkRenderingCore_AUTOINIT=3(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingOpenGL2)",
          "vtkRenderingOpenGL2_AUTOINIT=1(vtkRenderingGL2PSOpenGL2)",
          "vtkRenderingVolume_AUTOINIT=1(vtkRenderingVolumeOpenGL2)"]
+
+
+    def build(self):
+        cmake = CMake(self)
+        for vtkModule in self.required_modules:
+            cmake.definitions[vtkModule + "_DEFAULT"] = "ON"
+        cmake.definitions["BUILD_TESTING"] = "OFF"
+        cmake.definitions["BUILD_EXAMPLES"] = "OFF"
+        cmake.definitions["BUILD_SHARED_LIBS"] = self.options.shared
+        if self.options.minimal:
+            cmake.definitions["VTK_Group_StandAlone"] = "OFF"
+            cmake.definitions["VTK_Group_Rendering"] = "OFF"
+        if self.options.ioxml:
+            cmake.definitions["Module_vtkIOXML"] = "ON"
+        if self.options.qt:
+            cmake.definitions["VTK_Group_Qt"] = "ON"
+            cmake.definitions["VTK_QT_VERSION"] = "5"
+            cmake.definitions["VTK_BUILD_QT_DESIGNER_PLUGIN"] = "OFF"
+        if self.options.mpi:
+            cmake.definitions["VTK_Group_MPI"] = "ON"
+            cmake.definitions["Module_vtkIOParallelXML"] = "ON"
+        if self.options.mpi_minimal:
+            cmake.definitions["Module_vtkIOParallelXML"] = "ON"
+            cmake.definitions["Module_vtkParallelMPI"] = "ON"
+        if self.settings.build_type == "Debug" and self.settings.compiler == "Visual Studio":
+            cmake.definitions["CMAKE_DEBUG_POSTFIX"] = "_d"
+        cmake.configure()
+        cmake.build()
+        cmake.install()
+
+    def package_info(self):
+        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.includedirs = [
+            "include/vtk-%s" % self.short_version,
+            "include/vtk-%s/vtknetcdf/include" % self.short_version,
+            "include/vtk-%s/vtknetcdfcpp" % self.short_version
+        ]
