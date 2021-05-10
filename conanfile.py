@@ -1,18 +1,5 @@
-from conans import ConanFile, CMake, tools
-from conans.tools import os_info, SystemPackageTool
 import os
-import shutil
-
-
-# IMPORTANT NOTE: Even though this is a conan recipe to install VTK, when
-# consuming this recipe you should still call find_package for the VTK library
-# in order to have the ${VTK_USE_FILE} variable in CMake that you should
-# include according with VTK documentation. This is necessary such that vtk
-# libraries with factories are properly initialized. Without an
-# "INCLUDE(${VTK_USE_FILE})" in your CMakeLists file you will still be able to
-# compile and link with VTK, but when running the executable you will get an
-# error. Note, however, that you can utill use conan for the
-# target_link_libraries as usual in your CMakeLists file.
+from conans import ConanFile, CMake, tools
 
 
 class vtkConan(ConanFile):
@@ -22,11 +9,12 @@ class vtkConan(ConanFile):
     short_version = "9.0"
     homepage = "https://www.vtk.org/"
     git_hash = "d6710ec6fd105ee0662c80b08a6fc0cd335e11f8"
-    license = "BSD license"
     url = "https://github.com/bilke/conan-vtk"
     description = "The Visualization Toolkit (VTK) is an open-source, \
         freely available software system for 3D computer graphics, \
         image processing, and visualization."
+    exports = ["LICENSE.md", "CMakeLists.txt", "FindVTK.cmake"]
+
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "qt": [True, False], "mpi": [True, False],
                "fPIC": [True, False], "minimal": [True, False], "ioxml": [True, False],
@@ -35,7 +23,8 @@ class vtkConan(ConanFile):
                        "minimal=True", "ioxml=False", "mpi_minimal=False")
     generators = "cmake"
     no_copy_source = True
-    source_folder = "vtk_source"
+    short_paths = True
+    vtk_source_folder = "vtk_source"
     required_modules = ["vtkCommonColor"
                         "vtkCommonComputationalGeometry",
                         "vtkCommonCore",
@@ -69,38 +58,58 @@ class vtkConan(ConanFile):
                         "vtkViewsInfovis"]
 
     def source(self):
-        if not os.path.isfile(self.source_folder):
-            self.run("git clone https://gitlab.kitware.com/vtk/vtk.git " + self.source_folder)
-        self.run("cd " + self.source_folder + " && git checkout " + self.git_hash)
+        self.run("git clone -b release --single-branch https://gitlab.kitware.com/vtk/vtk.git " + self.vtk_source_folder)
+        self.run("cd " + self.vtk_source_folder + " && git checkout " + self.git_hash)
 
-    def imports(self):
-        self.copy("*.dll", dst="bin", src="bin")
-        self.copy("*.dylib*", dst="lib", src="lib")
+    def requirements(self):
+        if self.options.qt:
+            self.requires("Qt/5.11.2@bincrafters/stable")
+            self.options["Qt"].shared = True
+            self.options["Qt"].qtxmlpatterns = True
+            if tools.os_info.is_linux:
+                self.options["Qt"].qtx11extras = True
 
-    def system_requirements(self):
-        if os_info.is_linux:
-            installer = SystemPackageTool()
-            if os_info.linux_distro == 'arch':
-                package_names = ["freeglut", "libxt"]
-            else:
-                package_names = [
-                    "freeglut3-dev", "mesa-common-dev", "mesa-utils-extra",
-                    "libgl1-mesa-dev", "libglapi-mesa"]
+    def _system_package_architecture(self):
+        if tools.os_info.with_apt:
+            if self.settings.arch == "x86":
+                return ':i386'
+            elif self.settings.arch == "x86_64":
+                return ':amd64'
 
-            for name in package_names:
-                installer.install(name)
+        if tools.os_info.with_yum:
+            if self.settings.arch == "x86":
+                return '.i686'
+            elif self.settings.arch == 'x86_64':
+                return '.x86_64'
+        return ""
 
-    def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
-        self.cpp_info.includedirs = ["include/vtk-{}".format(self.version[:-2])]
+    def build_requirements(self):
+        pack_names = None
+        if not self.options.minimal and tools.os_info.is_linux:
+            if tools.os_info.with_apt:
+                pack_names = [
+                    "freeglut3-dev",
+                    "mesa-common-dev",
+                    "mesa-utils-extra",
+                    "libgl1-mesa-dev",
+                    "libglapi-mesa",
+                    "libsm-dev",
+                    "libx11-dev",
+                    "libxext-dev",
+                    "libxt-dev",
+                    "libglu1-mesa-dev"]
 
-        self.cpp_info.defines = ["vtkDomainsChemistry_AUTOINIT=1(vtkDomainsChemistryOpenGL2)",
-         "vtkIOExport_AUTOINIT=1(vtkIOExportOpenGL2)",
-         "vtkRenderingContext2D_AUTOINIT=1(vtkRenderingContextOpenGL2)",
-         "vtkRenderingCore_AUTOINIT=3(vtkInteractionStyle,vtkRenderingFreeType,vtkRenderingOpenGL2)",
-         "vtkRenderingOpenGL2_AUTOINIT=1(vtkRenderingGL2PSOpenGL2)",
-         "vtkRenderingVolume_AUTOINIT=1(vtkRenderingVolumeOpenGL2)"]
+        if pack_names:
+            installer = tools.SystemPackageTool()
+            for item in pack_names:
+                installer.install(item + self._system_package_architecture())
 
+    def config_options(self):
+        if self.settings.compiler == "Visual Studio":
+            del self.options.fPIC
+        if self.settings.os == "Linux":
+            self.options.fPIC = True
+            self.options.shared = True
 
     def build(self):
         cmake = CMake(self)
@@ -124,14 +133,17 @@ class vtkConan(ConanFile):
         if self.options.mpi_minimal:
             cmake.definitions["Module_vtkIOParallelXML"] = "ON"
             cmake.definitions["Module_vtkParallelMPI"] = "ON"
+
         if self.settings.build_type == "Debug" and self.settings.compiler == "Visual Studio":
             cmake.definitions["CMAKE_DEBUG_POSTFIX"] = "_d"
+
         cmake.configure()
         cmake.build()
         cmake.install()
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+
         self.cpp_info.includedirs = [
             "include/vtk-%s" % self.short_version,
             "include/vtk-%s/vtknetcdf/include" % self.short_version,

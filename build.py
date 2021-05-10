@@ -1,13 +1,28 @@
-from cpt.packager import ConanMultiPackager
+from conan.packager import ConanMultiPackager
+import copy
+import platform
 
 if __name__ == "__main__":
-    builder = ConanMultiPackager(username="darcamo", channel="stable")
+    builder = ConanMultiPackager(archs = ["x86_64"])
     builder.add_common_builds(pure_c=False)
+    items = []
+    for item in builder.items:
+        if item.settings["compiler"] == "Visual Studio":
+            if item.settings["compiler.runtime"] == "MT" or item.settings["compiler.runtime"] == "MTd":
+                # Ignore MT runtime
+                continue
+        # Build static only
+        if item.options["VTK:shared"]:
+            continue
 
-    filtered_builds = []
-    for settings, options, env_vars, build_requires, reference in builder.items:
-        if settings["compiler.libcxx"] != "libc++":  # libc++ from clang does not have algorithm header
-            filtered_builds.append([settings, options, env_vars, build_requires])
-    builder.builds = filtered_builds
+        new_options = copy.copy(item.options)
+        new_options["VTK:qt"] = True
+        items.append([item.settings, new_options, item.env_vars, item.build_requires])
 
+        new_options = copy.copy(item.options)
+        new_options["VTK:minimal"] = True
+        new_options["VTK:ioxml"] = True
+        items.append([item.settings, new_options, item.env_vars, item.build_requires])
+
+    builder.items = items
     builder.run()
