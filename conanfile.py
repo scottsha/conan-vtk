@@ -109,7 +109,7 @@ class vtkConan(ConanFile):
             del self.options.fPIC
         if self.settings.os == "Linux":
             self.options.fPIC = True
-            self.options.shared = True
+            self.options.shared = False
 
     def build(self):
         cmake = CMake(self)
