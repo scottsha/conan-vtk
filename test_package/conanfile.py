@@ -11,10 +11,13 @@ class TestPackageConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
+        print("configuring in the test script")
         cmake.configure()
         cmake.build()
 
     def imports(self):
+        self.copy("*.a", dst="bin", src="bin")
+        self.copy("*.so*", dst="bin", src="lib")
         self.copy("*.dll", dst="bin", src="bin")
         self.copy("*.dylib*", dst="bin", src="lib")
 
