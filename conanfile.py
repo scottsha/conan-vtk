@@ -5,10 +5,10 @@ from conans import ConanFile, CMake, tools
 class vtkConan(ConanFile):
     name = "vtk"
     version = "9.1"
-    source_version = "9.0.1"
-    short_version = "9.0"
+    source_version = "9.1.0"
+    short_version = "9.1"
     homepage = "https://www.vtk.org/"
-    git_hash = "d6710ec6fd105ee0662c80b08a6fc0cd335e11f8"
+    git_hash = "285daeedd58eb890cb90d6e907d822eea3d2d092"
     url = "https://github.com/bilke/conan-vtk"
     description = "The Visualization Toolkit (VTK) is an open-source, \
         freely available software system for 3D computer graphics, \
@@ -90,7 +90,7 @@ class vtkConan(ConanFile):
                 pack_names = [
                     "freeglut3-dev",
                     "mesa-common-dev",
-                    "mesa-utils-extra",
+                    "mesa-utils",
                     "libgl1-mesa-dev",
                     "libglapi-mesa",
                     "libsm-dev",
@@ -112,6 +112,7 @@ class vtkConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
+        # -include /usr/include/c++/11/limits
         # for vtkModule in self.required_modules:
         #     cmake.definitions[vtkModule + "_DEFAULT"] = "ON"
         # cmake.definitions["BUILD_TESTING"] = "OFF"
@@ -144,8 +145,6 @@ class vtkConan(ConanFile):
         self.cpp_info.libs = tools.collect_libs(self)
         if self.settings.os == "Linux":
             self.cpp_info.libs += ["dl","pthread"]
-        self.cpp_info.includedirs = [
-            "include/vtk-%s" % self.short_version,
-            "include/vtk-%s/vtknetcdf/include" % self.short_version,
-            "include/vtk-%s/vtknetcdfcpp" % self.short_version
-        ]
+        vtk_base_include_dir = "include/vtk-%s" % self.short_version
+        # vtk_include_subdirs = [foo[0] for foo in os.walk(vtk_base_include_dir)]
+        self.cpp_info.includedirs = [vtk_base_include_dir]
