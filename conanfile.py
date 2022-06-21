@@ -148,3 +148,13 @@ class vtkConan(ConanFile):
         vtk_base_include_dir = "include/vtk-%s" % self.short_version
         # vtk_include_subdirs = [foo[0] for foo in os.walk(vtk_base_include_dir)]
         self.cpp_info.includedirs = [vtk_base_include_dir]
+
+
+
+
+    def package(self):
+    # Copy the libraries
+        if self.options.shared:
+            self.copy(pattern="*.dll", dst="bin", keep_path=False)
+            self.copy(pattern="*.dylib", dst="lib", keep_path=False)
+            self.copy(pattern="*.so*", dst="lib", keep_path=False)
