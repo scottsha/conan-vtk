@@ -147,7 +147,7 @@ class vtkConan(ConanFile):
             self.cpp_info.libs += ["dl","pthread"]
         vtk_base_include_dir = "include/vtk-%s" % self.short_version
         vtk_include_subdirs = [vtk_base_include_dir] + [foo[0] for foo in os.walk(vtk_base_include_dir)]
-        self.cpp_info.includedirs = [vtk_base_include_dir]
+        self.cpp_info.includedirs = vtk_include_subdirs
 
 
 
