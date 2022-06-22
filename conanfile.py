@@ -1,7 +1,6 @@
 import os
 from conans import ConanFile, CMake, tools
 
-
 class vtkConan(ConanFile):
     name = "vtk"
     version = "9.1"
@@ -109,6 +108,7 @@ class vtkConan(ConanFile):
             del self.options.fPIC
         if self.settings.os == "Linux":
             self.options.fPIC = True
+            self.options.shared = True
 
     def build(self):
         cmake = CMake(self)
@@ -143,18 +143,32 @@ class vtkConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
-        if self.settings.os == "Linux":
-            self.cpp_info.libs += ["dl","pthread"]
-        vtk_base_include_dir = "include/vtk-%s" % self.short_version
-        vtk_include_subdirs = [vtk_base_include_dir] + [foo[0] for foo in os.walk(vtk_base_include_dir)]
-        self.cpp_info.includedirs = vtk_include_subdirs
+
+        self.cpp_info.includedirs = [
+            "include/vtk-%s" % self.short_version,
+            "include/vtk-%s/vtknetcdf/include" % self.short_version,
+            "include/vtk-%s/vtknetcdfcpp" % self.short_version
+        ]
+
+    # def package_info(self):
+    #     self.cpp_info.libs = tools.collect_libs(self)
+    #     if self.settings.os == "Linux":
+    #         self.cpp_info.libs += ["dl","pthread"]
+    #     vtk_base_include_dirs = [
+    #         "include/vtk-%s" % self.short_version,
+    #         "include/vtk-%s/vtknetcdf/include" % self.short_version,
+    #         "include/vtk-%s/vtknetcdfcpp" % self.short_version
+    #     ]
+    #     vtk_include_subdirs = vtk_base_include_dirs \
+    #                           + [foo[0] for foo in os.walk(vtk_base_include_dirs[0])]
+    #     self.cpp_info.includedirs = vtk_include_subdirs
 
 
 
 
-    def package(self):
-    # Copy the libraries
-        if self.options.shared:
-            self.copy(pattern="*.dll", dst="bin", keep_path=False)
-            self.copy(pattern="*.dylib", dst="lib", keep_path=False)
-            self.copy(pattern="*.so*", dst="lib", keep_path=False)
+    # def package(self):
+    # # Copy the libraries
+    #     if self.options.shared:
+    #         self.copy(pattern="*.dll", dst="bin", keep_path=False)
+    #         self.copy(pattern="*.dylib", dst="lib", keep_path=False)
+    #         self.copy(pattern="*.so*", dst="lib", keep_path=False)
