@@ -3,7 +3,7 @@ from conans import ConanFile, CMake, tools
 
 class vtkConan(ConanFile):
     name = "vtk"
-    version = "9.1"
+    version = "9.1.a"
     source_version = "9.1.0"
     short_version = "9.1"
     homepage = "https://www.vtk.org/"
