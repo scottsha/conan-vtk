@@ -4,8 +4,8 @@ from conans import ConanFile, CMake, tools
 class vtkConan(ConanFile):
     name = "vtk"
     version = "9.2.0.a"
-    source_version = "9.1.1"
-    short_version = "9.1"
+    source_version = "9.2.0.rc"
+    short_version = "9.2"
     homepage = "https://www.vtk.org/"
     git_hash = "8eac8f81aef4ff4cfce009b7b31b0be7bfed59ad"
     url = "https://github.com/bilke/conan-vtk"
