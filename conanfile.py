@@ -3,11 +3,11 @@ from conans import ConanFile, CMake, tools
 
 class vtkConan(ConanFile):
     name = "vtk"
-    version = "9.1.1.a"
+    version = "9.2.0.a"
     source_version = "9.1.1"
     short_version = "9.1"
     homepage = "https://www.vtk.org/"
-    git_hash = "285daeedd58eb890cb90d6e907d822eea3d2d092"
+    git_hash = "8eac8f81aef4ff4cfce009b7b31b0be7bfed59ad"
     url = "https://github.com/bilke/conan-vtk"
     description = "The Visualization Toolkit (VTK) is an open-source, \
         freely available software system for 3D computer graphics, \
