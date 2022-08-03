@@ -15,12 +15,12 @@
 int main(int, char *[])
 {
     //Create a cone
-//    vtkSmartPointer<vtkConeSource> coneSource =
-//    vtkSmartPointer<vtkConeSource>::New();
-//    coneSource->Update();
-//    auto cone = coneSource->GetOutput();
-//    auto num_cone_vertices = cone->GetNumberOfPoints();
-//    assert(num_cone_vertices == 7);
+    vtkSmartPointer<vtkConeSource> coneSource =
+    vtkSmartPointer<vtkConeSource>::New();
+    coneSource->Update();
+    auto cone = coneSource->GetOutput();
+    auto num_cone_vertices = cone->GetNumberOfPoints();
+    assert(num_cone_vertices == 7);
     //
     vtkSmartPointer<vtkDoubleArray> valueArray =
             vtkSmartPointer<vtkDoubleArray>::New();

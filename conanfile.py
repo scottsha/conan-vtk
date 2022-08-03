@@ -15,11 +15,23 @@ class vtkConan(ConanFile):
     exports = ["LICENSE.md", "CMakeLists.txt", "FindVTK.cmake"]
 
     settings = "os", "compiler", "build_type", "arch"
-    options = {"shared": [True, False], "qt": [True, False], "mpi": [True, False],
-               "fPIC": [True, False], "minimal": [True, False], "ioxml": [True, False],
-               "mpi_minimal": [True, False]}
-    default_options = ("shared=True", "qt=False", "mpi=False", "fPIC=False",
-                       "minimal=False", "ioxml=False", "mpi_minimal=False")
+    options = {"shared": [True, False],
+               "qt": [True, False],
+               "mpi": [True, False],
+               "fPIC": [True, False],
+               "minimal": [True, False],
+               "ioxml": [True, False],
+               "mpi_minimal": [True, False],
+               "enable_wrapping": [True, False]
+               }
+    default_options = ("shared=True",
+                       "qt=False",
+                       "mpi=False",
+                       "fPIC=False",
+                       "minimal=False",
+                       "ioxml=False",
+                       "mpi_minimal=False",
+                       "enable_wrapping=False")
     generators = "cmake"
     no_copy_source = True
     short_paths = True
@@ -82,6 +94,7 @@ class vtkConan(ConanFile):
     def build(self):
         cmake = CMake(self)
         cmake.definitions["BUILD_SHARED_LIBS"] = "ON " if self.options.shared else "OFF"
+        cmake.definitions["VTK_ENABLE_WRAPPING"] = "ON" if self.options["enable_wrapping"] else "OFF"
         cmake.configure()
         cmake.build()
         cmake.install()
